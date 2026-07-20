@@ -35,6 +35,6 @@ data/
 | `VC` | VC method name (e.g., Clean, FreeVC, Diff) |
 | `tar_wav` | Target ground-truth audio path: `data/train(test)/{dataset}/Clean/{target_speaker}/{target_utt}.wav`; **`none` for clean samples** |
 ## Model Training
-`python train.py train.yaml --data_folder=vc_dataset --data_parallel_backend`
+`python train.py train.yaml --data_folder=noise --data_parallel_backend`
 ## Model Evaluation
 `python test.py --clean_dir=data/test/{dataset}/Clean --convert_dir=data/test/{dataset}/{method_name}`
