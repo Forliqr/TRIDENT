@@ -1,0 +1,101 @@
+pretrained_path: /checkpoints/Trident/exact_path
+out_n_neurons: 9583
+
+n_mels: 80
+left_frames: 0
+right_frames: 0
+deltas: False
+
+compute_features: !new:speechbrain.lobes.features.Fbank
+    n_mels: !ref <n_mels>
+    left_frames: !ref <left_frames>
+    right_frames: !ref <right_frames>
+    deltas: !ref <deltas>
+
+mean_var_norm: !new:speechbrain.processing.features.InputNormalization
+    norm_type: sentence
+    std_norm: False
+
+embedding_model: !new:models.ECAPA_TDNN_change
+    input_size: !ref <n_mels>
+    channels: [1024, 1024, 1024, 1024, 3072]
+    kernel_sizes: [5, 3, 3, 3, 1]
+    dilations: [1, 2, 3, 4, 1]
+    groups: [1, 1, 1, 1, 1]
+    attention_channels: 128
+    lin_neurons: 192
+
+Target_Projection: !new:models.ECAPA_TDNN_latter_normal
+    input_size: !ref <n_mels>
+    channels: [1024, 1024, 1024, 1024, 3072]
+    kernel_sizes: [5, 3, 3, 3, 1]
+    dilations: [1, 2, 3, 4, 1]
+    groups: [1, 1, 1, 1, 1]
+    attention_channels: 128
+    lin_neurons: 192
+
+Method_Projection: !new:models.ECAPA_TDNN_latter_specific
+    input_size: !ref <n_mels>
+    channels: [1024, 1024, 1024, 512, 3072]
+    kernel_sizes: [5, 3, 3, 3, 1]
+    dilations: [1, 2, 3, 4, 1]
+    groups: [1, 1, 1, 1, 1]
+    attention_channels: 128
+    lin_neurons: 32
+
+Source_Projection: !new:models.ECAPA_TDNN_latter_differential
+    input_size: !ref <n_mels>
+    channels: [1024, 1024, 1024, 1024, 3072]
+    kernel_sizes: [5, 3, 3, 3, 1]
+    dilations: [1, 2, 3, 4, 1]
+    groups: [1, 1, 1, 1, 1]
+    attention_channels: 128
+    lin_neurons: 192
+    append_dim: 3072
+
+classifier: !new:speechbrain.lobes.models.ECAPA_TDNN.Classifier
+    input_size: 192
+    out_neurons: !ref <out_n_neurons>
+
+Method_classifier: !new:speechbrain.lobes.models.ECAPA_TDNN.Classifier
+    input_size: 32
+    out_neurons: !ref <out_n_neurons>
+
+mean_var_norm_emb: !new:speechbrain.processing.features.InputNormalization
+    norm_type: global
+    std_norm: False
+
+modules:
+    compute_features: !ref <compute_features>
+    embedding_model: !ref <embedding_model>
+    Target_Projection: !ref <Target_Projection>
+    Source_Projection: !ref <Source_Projection>
+    Target_classifier: !ref <classifier>
+    Source_classifier: !ref <classifier>
+    Method_Projection: !ref <Method_Projection>
+    Method_classifier: !ref <classifier>
+    mean_var_norm: !ref <mean_var_norm>
+    mean_var_norm_emb: !ref <mean_var_norm_emb>
+        
+label_encoder: !new:speechbrain.dataio.encoder.CategoricalEncoder
+
+        
+pretrainer: !new:speechbrain.utils.parameter_transfer.Pretrainer
+    loadables:
+        embedding_model: !ref <embedding_model>
+        Target_Projection: !ref <Target_Projection>
+        Source_Projection: !ref <Source_Projection>
+        Method_Projection: !ref <Method_Projection>
+        Method_classifier: !ref <Method_classifier>
+        Target_classifier: !ref <classifier>
+        Source_classifier: !ref <classifier>
+        mean_var_norm_emb: !ref <mean_var_norm_emb>
+    paths:
+        embedding_model: !ref <pretrained_path>/embedding_model.ckpt
+        Target_Projection: !ref <pretrained_path>/Target_Projection.ckpt
+        Method_Projection: !ref <pretrained_path>/Method_Projection.ckpt
+        Method_classifier: !ref <pretrained_path>/Method_classifier.ckpt
+        Source_Projection: !ref <pretrained_path>/Source_Projection.ckpt
+        Target_classifier: !ref <pretrained_path>/Target_classifier.ckpt
+        Source_classifier: !ref <pretrained_path>/Source_classifier.ckpt
+        mean_var_norm_emb: !ref <pretrained_path>/normalizer.ckpt
