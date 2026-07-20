@@ -1,0 +1,213 @@
+seed: 1986
+__set_seed: !apply:torch.manual_seed [!ref <seed>]
+output_folder: !ref /checkpoints
+save_folder: !ref <output_folder>/Trident
+train_log: !ref <output_folder>/train_log.txt
+
+data_folder: !PLACEHOLDER
+train_annotation: train.csv
+valid_annotation: test.csv
+
+rir_folder: !ref <data_folder>
+
+Revelio_normalizer_path: !ref /home
+Revelio_embedding_path: !ref /home
+Revelio_classifier_path: !ref /home
+
+embedding_model_path: /home
+Normal_Projection_path: /home
+Diff_Projection_path: /home
+Normal_classifier_path: /home
+Diff_classifier_path: /home
+Judge_Projection_path: /home
+Judge_classifier_path: /home
+
+skip_prep: False
+ckpt_interval_minutes: 15
+
+indoor: True
+number_of_epochs: 30
+batch_size: 24
+test_batch_size: 256
+lr: 0.001
+base_lr: 0.00000001
+max_lr: !ref <lr>
+step_size: 65000
+sample_rate: 16000
+sentence_len: 6.0
+shuffle: True
+random_chunk: True
+
+n_mels: 80
+left_frames: 0
+right_frames: 0
+deltas: False
+
+out_n_neurons: 9583
+
+dataloader_options:
+    batch_size: !ref <batch_size>
+    shuffle: !ref <shuffle>
+    num_workers: 8
+
+test_dataloader_options:
+    batch_size: !ref <test_batch_size>
+    shuffle: !ref <shuffle>
+    num_workers: 8
+
+compute_features: !new:speechbrain.lobes.features.Fbank
+    n_mels: !ref <n_mels>
+    left_frames: !ref <left_frames>
+    right_frames: !ref <right_frames>
+    deltas: !ref <deltas>
+
+embedding_model: !new:models.ECAPA_TDNN_change
+    input_size: !ref <n_mels>
+    channels: [1024, 1024, 1024, 1024, 3072]
+    kernel_sizes: [5, 3, 3, 3, 1]
+    dilations: [1, 2, 3, 4, 1]
+    groups: [1, 1, 1, 1, 1]
+    attention_channels: 128
+    lin_neurons: 192
+
+classifier: !new:speechbrain.lobes.models.ECAPA_TDNN.Classifier
+    input_size: 192
+    out_neurons: !ref <out_n_neurons>
+
+Judge_classifier: !new:speechbrain.lobes.models.ECAPA_TDNN.Classifier
+    input_size: 32
+    out_neurons: !ref <out_n_neurons>
+
+epoch_counter: !new:speechbrain.utils.epoch_loop.EpochCounter
+    limit: !ref <number_of_epochs>
+
+
+augment_wavedrop: !new:speechbrain.lobes.augment.TimeDomainSpecAugment
+    sample_rate: !ref <sample_rate>
+    speeds: [100]
+
+augment_speed: !new:speechbrain.lobes.augment.TimeDomainSpecAugment
+    sample_rate: !ref <sample_rate>
+    speeds: [95, 100, 105]
+
+add_rev: !new:speechbrain.lobes.augment.EnvCorrupt
+    openrir_folder: !ref <rir_folder>
+    openrir_max_noise_len: 3.0
+    reverb_prob: 1.0
+    noise_prob: 0.0
+    noise_snr_low: 0
+    noise_snr_high: 15
+    rir_scale_factor: 1.0
+
+add_noise: !new:speechbrain.lobes.augment.EnvCorrupt
+    openrir_folder: !ref <rir_folder>
+    openrir_max_noise_len: 3.0
+    reverb_prob: 0.0
+    noise_prob: 1.0
+    noise_snr_low: 0
+    noise_snr_high: 15
+    rir_scale_factor: 1.0
+
+add_rev_noise: !new:speechbrain.lobes.augment.EnvCorrupt
+    openrir_folder: !ref <rir_folder>
+    openrir_max_noise_len: 3.0
+    reverb_prob: 1.0
+    noise_prob: 1.0
+    noise_snr_low: 0
+    noise_snr_high: 15
+    rir_scale_factor: 1.0
+
+Normal_Projection: !new:models.ECAPA_TDNN_latter_normal
+    input_size: !ref <n_mels>
+    channels: [1024, 1024, 1024, 1024, 3072]
+    kernel_sizes: [5, 3, 3, 3, 1]
+    dilations: [1, 2, 3, 4, 1]
+    groups: [1, 1, 1, 1, 1]
+    attention_channels: 128
+    lin_neurons: 192
+
+Judge_Projection: !new:models.ECAPA_TDNN_latter_specific
+    input_size: !ref <n_mels>
+    channels: [1024, 1024, 1024, 512, 3072]
+    kernel_sizes: [5, 3, 3, 3, 1]
+    dilations: [1, 2, 3, 4, 1]
+    groups: [1, 1, 1, 1, 1]
+    attention_channels: 128
+    lin_neurons: 32
+
+Diff_Projection: !new:models.ECAPA_TDNN_latter_differential
+    input_size: !ref <n_mels>
+    channels: [1024, 1024, 1024, 1024, 3072]
+    kernel_sizes: [5, 3, 3, 3, 1]
+    dilations: [1, 2, 3, 4, 1]
+    groups: [1, 1, 1, 1, 1]
+    attention_channels: 128
+    lin_neurons: 192
+    append_dim: 3072
+
+augment_pipeline: [
+    !ref <augment_wavedrop>,
+    !ref <augment_speed>,
+    !ref <add_rev>,
+    !ref <add_noise>,
+    !ref <add_rev_noise>
+]
+concat_augment: True
+
+mean_var_norm: !new:speechbrain.processing.features.InputNormalization
+    norm_type: global
+    std_norm: False
+
+N_modules:
+    compute_features: !ref <compute_features>
+    augment_wavedrop: !ref <augment_wavedrop>
+    augment_speed: !ref <augment_speed>
+    add_rev: !ref <add_rev>
+    add_noise: !ref <add_noise>
+    add_rev_noise: !ref <add_rev_noise>
+    embedding_model: !ref <embedding_model>
+    Normal_Projection: !ref <Normal_Projection>
+    Diff_Projection: !ref <Diff_Projection>
+    Normal_classifier: !ref <classifier>
+    Diff_classifier: !ref <classifier>
+    mean_var_norm: !ref <mean_var_norm>
+    Judge_classifier: !ref <Judge_classifier>
+    Judge_Projection: !ref <Judge_Projection>
+
+compute_cost: !new:speechbrain.nnet.losses.LogSoftmaxWrapper
+    loss_fn: !new:speechbrain.nnet.losses.AdditiveAngularMargin
+        margin: 0.2
+        scale: 30
+
+
+opt_class: !name:torch.optim.Adam
+    lr: !ref <lr>
+    weight_decay: 0.000002
+    amsgrad: False
+
+
+lr_annealing: !new:speechbrain.nnet.schedulers.CyclicLRScheduler
+    base_lr: !ref <base_lr>
+    max_lr: !ref <max_lr>
+    step_size: !ref <step_size>
+
+train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
+    save_file: !ref <train_log>
+
+error_stats: !name:speechbrain.utils.metric_stats.MetricStats
+    metric: !name:speechbrain.nnet.losses.classification_error
+        reduction: batch
+
+checkpointer: !new:speechbrain.utils.checkpoints.Checkpointer
+    checkpoints_dir: !ref <save_folder>
+    recoverables:
+        embedding_model: !ref <embedding_model>
+        Normal_Projection: !ref <Normal_Projection>
+        Diff_Projection: !ref <Diff_Projection>
+        Normal_classifier: !ref <classifier>
+        Diff_classifier: !ref <classifier>
+        Judge_classifier: !ref <Judge_classifier>
+        Judge_Projection: !ref <Judge_Projection>
+        normalizer: !ref <mean_var_norm>
+        counter: !ref <epoch_counter>
+        lr_annealing: !ref <lr_annealing>
