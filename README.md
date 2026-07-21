@@ -35,6 +35,10 @@ data/
 | `VC` | VC method name (e.g., Clean, FreeVC, Diff) |
 | `tar_wav` | Target ground-truth audio path: `data/train(test)/{dataset}/Clean/{target_speaker}/{target_utt}.wav`; **`none` for clean samples** |
 ## Model Training
+`wget https://huggingface.co/datasets/Forliqr/TRIDENT_noise/resolve/main/RIRS_NOISES.zip`
+
+`unzip RIRS_NOISES.zip -d noise/`
+
 `python train.py train.yaml --data_folder=noise --data_parallel_backend`
 ## Model Evaluation
 `python test.py --clean_dir=data/test/{dataset}/Clean --convert_dir=data/test/{dataset}/{method_name}`
