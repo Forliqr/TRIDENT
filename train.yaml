@@ -10,17 +10,17 @@ valid_annotation: test.csv
 
 rir_folder: !ref <data_folder>
 
-Revelio_normalizer_path: !ref /home
-Revelio_embedding_path: !ref /home
-Revelio_classifier_path: !ref /home
 
-embedding_model_path: /home
-Normal_Projection_path: /home
-Diff_Projection_path: /home
-Normal_classifier_path: /home
-Diff_classifier_path: /home
-Judge_Projection_path: /home
-Judge_classifier_path: /home
+# ecapa: initialize the backbone only; trident: load all six branch modules too.
+pretrain_mode: ecapa
+# Replace these example paths with actual checkpoint files before training.
+embedding_model_path: /Ecapa_pretrained_path/embedding_model.ckpt
+Target_Projection_path: /home
+Source_Projection_path: /home
+Target_classifier_path: /home
+Source_classifier_path: /home
+Method_Projection_path: /home
+Method_classifier_path: /home
 
 skip_prep: False
 ckpt_interval_minutes: 15
