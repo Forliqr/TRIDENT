@@ -74,7 +74,7 @@ classifier: !new:speechbrain.lobes.models.ECAPA_TDNN.Classifier
     input_size: 192
     out_neurons: !ref <out_n_neurons>
 
-Judge_classifier: !new:speechbrain.lobes.models.ECAPA_TDNN.Classifier
+Method_classifier: !new:speechbrain.lobes.models.ECAPA_TDNN.Classifier
     input_size: 32
     out_neurons: !ref <out_n_neurons>
 
@@ -117,7 +117,7 @@ add_rev_noise: !new:speechbrain.lobes.augment.EnvCorrupt
     noise_snr_high: 15
     rir_scale_factor: 1.0
 
-Normal_Projection: !new:models.ECAPA_TDNN_latter_normal
+Target_Projection: !new:models.ECAPA_TDNN_latter_normal
     input_size: !ref <n_mels>
     channels: [1024, 1024, 1024, 1024, 3072]
     kernel_sizes: [5, 3, 3, 3, 1]
@@ -126,7 +126,7 @@ Normal_Projection: !new:models.ECAPA_TDNN_latter_normal
     attention_channels: 128
     lin_neurons: 192
 
-Judge_Projection: !new:models.ECAPA_TDNN_latter_specific
+Method_Projection: !new:models.ECAPA_TDNN_latter_specific
     input_size: !ref <n_mels>
     channels: [1024, 1024, 1024, 512, 3072]
     kernel_sizes: [5, 3, 3, 3, 1]
@@ -135,7 +135,7 @@ Judge_Projection: !new:models.ECAPA_TDNN_latter_specific
     attention_channels: 128
     lin_neurons: 32
 
-Diff_Projection: !new:models.ECAPA_TDNN_latter_differential
+Source_Projection: !new:models.ECAPA_TDNN_latter_differential
     input_size: !ref <n_mels>
     channels: [1024, 1024, 1024, 1024, 3072]
     kernel_sizes: [5, 3, 3, 3, 1]
@@ -166,13 +166,13 @@ N_modules:
     add_noise: !ref <add_noise>
     add_rev_noise: !ref <add_rev_noise>
     embedding_model: !ref <embedding_model>
-    Normal_Projection: !ref <Normal_Projection>
-    Diff_Projection: !ref <Diff_Projection>
-    Normal_classifier: !ref <classifier>
-    Diff_classifier: !ref <classifier>
+    Target_Projection: !ref <Target_Projection>
+    Source_Projection: !ref <Source_Projection>
+    Target_classifier: !ref <classifier>
+    Source_classifier: !ref <classifier>
     mean_var_norm: !ref <mean_var_norm>
-    Judge_classifier: !ref <Judge_classifier>
-    Judge_Projection: !ref <Judge_Projection>
+    Method_classifier: !ref <Method_classifier>
+    Method_Projection: !ref <Method_Projection>
 
 compute_cost: !new:speechbrain.nnet.losses.LogSoftmaxWrapper
     loss_fn: !new:speechbrain.nnet.losses.AdditiveAngularMargin
@@ -202,12 +202,12 @@ checkpointer: !new:speechbrain.utils.checkpoints.Checkpointer
     checkpoints_dir: !ref <save_folder>
     recoverables:
         embedding_model: !ref <embedding_model>
-        Normal_Projection: !ref <Normal_Projection>
-        Diff_Projection: !ref <Diff_Projection>
-        Normal_classifier: !ref <classifier>
-        Diff_classifier: !ref <classifier>
-        Judge_classifier: !ref <Judge_classifier>
-        Judge_Projection: !ref <Judge_Projection>
+        Target_Projection: !ref <Target_Projection>
+        Source_Projection: !ref <Source_Projection>
+        Target_classifier: !ref <classifier>
+        Source_classifier: !ref <classifier>
+        Method_classifier: !ref <Method_classifier>
+        Method_Projection: !ref <Method_Projection>
         normalizer: !ref <mean_var_norm>
         counter: !ref <epoch_counter>
         lr_annealing: !ref <lr_annealing>
