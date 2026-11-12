@@ -84,6 +84,3 @@ class Encoder(Pretrained):
 
     def forward(self, wavs, tarwavs, wav_lens=None, tarwav_lens=None):
         return self.encode_batch(wavs=wavs, tarwavs=tarwavs)
-
-    def inference(self, wavs, tarwavs, wav_lens=None, tarwav_lens=None):
-        return self.encode_batch(wavs=wavs, tarwavs=tarwavs)
