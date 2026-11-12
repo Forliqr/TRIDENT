@@ -29,11 +29,11 @@ data/
 | Column | Description |
 |--------|-------------|
 | `ID` | `{method_name}_{source_speaker}-{target_speaker}_{source_utt}-{target_utt}` |
-| `wav` | Path to audio: `data/train(test)/{dataset}/{method_name}/{source_speaker}-{target_speaker}/{source_utt}-{target_utt}.wav` |
+| `wav` | Path to audio: `data/train(test)/{dataset}/{method_name}/{source_speaker}-{target_speaker}/{source_speaker}-{target_speaker}_{source_utt}-{target_utt}.wav` |
 | `spk_id` | Source speaker ID |
 | `lens` | Audio length |
 | `VC` | VC method name (e.g., Clean, FreeVC, Diff) |
-| `tar_wav` | Target ground-truth audio path: `data/train(test)/{dataset}/Clean/{target_speaker}/{target_utt}.wav`; **`none` for clean samples** |
+| `tar_wav` | Target ground-truth audio path: `data/train(test)/{dataset}/Clean/{target_speaker}/{target_speaker}_{target_utt}.wav`; **`none` for clean samples** |
 ## Model Training
 `python download_noise.py`
 
