@@ -440,6 +440,35 @@ class ECAPA_TDNN_change(torch.nn.Module):
 
         return x
 
+    def inference(source, target, lengths=None):
+        pflag = False
+        x = torch.cat([source, target], dim=0)
+
+        if pflag:
+            print('input s:{}, t:{}, x:{}'.\
+                format(source.size(),
+                        target.size(),
+                        x.size()))
+
+        x = x.transpose(1, 2)
+        xl = []
+        for layer in self.blocks[:]:
+            try:
+                x = layer(x, lengths=lengths)
+            except TypeError:
+                x = layer(x)
+            xl.append(x)
+
+        x = torch.cat(xl[1:], dim=1)
+        
+        query = x[ : x.size(0) // 2]
+        key = x[x.size(0) // 2 : ]
+
+        x = self.proj(query, key.mean(dim=-1, keepdim=True))
+        x = self.mfa_2(x)
+
+        return x
+
 class ECAPA_TDNN_latter_normal(torch.nn.Module):
     def __init__(
         self,
