@@ -440,7 +440,7 @@ class ECAPA_TDNN_change(torch.nn.Module):
 
         return x
 
-    def inference(source, target, lengths=None):
+    def inference(self, source, target, lengths=None):
         pflag = False
         x = torch.cat([source, target], dim=0)
 
