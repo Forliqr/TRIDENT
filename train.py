@@ -106,8 +106,8 @@ class SpeakerBrain(sb.core.Brain):
 
         embeddings = self.modules.Source_Projection(embeddings, un_embeddings)
 
-        Target_outputs = self.modules.Target_classifier(Nformat_embeddings)
-        Method_outputs = self.modules.Method_classifier(Judge_embeddings)
+        Target_outputs = self.modules.Target_classifier(Target_embeddings)
+        Method_outputs = self.modules.Method_classifier(Method_embeddings)
         outputs = self.modules.Source_classifier(embeddings)
 
         return Method_outputs, Target_outputs, outputs, lens1, flag
@@ -120,8 +120,8 @@ class SpeakerBrain(sb.core.Brain):
             return torch.tensor(0.0, device=self.device, requires_grad=True)
         uttid = batch.id
         Sourceid, _ = batch.spk_id_encoded
-        Targetid, _ = batch.sound_id
-        Methodid, _ = batch.judge_id
+        Targetid, _ = batch.Target_id
+        Methodid, _ = batch.Method_id
 
         if stage == sb.Stage.TRAIN:
             Sourceid = torch.cat([Sourceid] * self.n_augment, dim=0)
@@ -132,7 +132,7 @@ class SpeakerBrain(sb.core.Brain):
         loss1 = self.hparams.compute_cost(Method_predictions, Methodid, lens)
         loss2 = self.hparams.compute_cost(Target_predictions, Targetid, lens)
         loss3 = self.hparams.compute_cost(Source_predictions, Sourceid, lens)
-        samples_sign = torch.sign(torch.abs(spkid-soundid)).flatten()
+        samples_sign = torch.sign(torch.abs(Sourceid-Targetid)).flatten()
         selected_indices = torch.where(samples_sign==1)[0]
         selected_d = Source_predictions[selected_indices]
         selected_n = Target_predictions[selected_indices]
@@ -164,7 +164,7 @@ class SpeakerBrain(sb.core.Brain):
             self.hparams.lr_annealing.on_batch_end(self.optimizer)
 
         if stage != sb.Stage.TRAIN:
-            self.error_metrics.append(uttid, diff_predictions, spkid, lens)
+            self.error_metrics.append(uttid, Source_predictions, Sourceid, lens)
 
         return loss
 
@@ -265,47 +265,47 @@ def dataio_prep(hparams):
     sb.dataio.dataset.add_dynamic_item(datasets, label_pipeline)
 
     @sb.utils.data_pipeline.takes("spk_id", "tar_wav", "id")
-    @sb.utils.data_pipeline.provides("sound_name", "sound_id", "judge_id")
-    def sound_label_pipeline(spk_id, tar_wav, ID):
+    @sb.utils.data_pipeline.provides("Target_name", "Target_id", "Method_id")
+    def target_method_label_pipeline(spk_id, tar_wav, ID):
         if tar_wav == "none":
-            sound_name = "none"
-            yield sound_name
-            sound_id = label_encoder.encode_sequence_torch([spk_id])
-            yield sound_id
+            Target_name = "none"
+            yield Target_name
+            Target_id = label_encoder.encode_sequence_torch([spk_id])
+            yield Target_id
         else:
             wav_name = tar_wav.split('/')[-1]
-            sound_name = wav_name.split('_')[0]
-            yield sound_name
-            sound_id = label_encoder.encode_sequence_torch([sound_name])
-            yield sound_id
+            Target_name = wav_name.split('_')[0]
+            yield Target_name
+            Target_id = label_encoder.encode_sequence_torch([Target_name])
+            yield Target_id
         if 'Clean_' in ID:
-            judge_id = torch.tensor([0])
+            Method_id = torch.tensor([0])
         elif 'PPG_' in ID:
-            judge_id = torch.tensor([1])
+            Method_id = torch.tensor([1])
         elif 'Again_' in ID:
-            judge_id = torch.tensor([2])
+            Method_id = torch.tensor([2])
         elif 'VQVC_' in ID:
-            judge_id = torch.tensor([3])
+            Method_id = torch.tensor([3])
         elif 'VQVCp_' in ID:
-            judge_id = torch.tensor([4])
+            Method_id = torch.tensor([4])
         elif 'Diff_' in ID:
-            judge_id = torch.tensor([5])
+            Method_id = torch.tensor([5])
         elif 'DDDM_' in ID:
-            judge_id = torch.tensor([6])
+            Method_id = torch.tensor([6])
         elif 'FreeVC_' in ID:
-            judge_id = torch.tensor([7])
+            Method_id = torch.tensor([7])
         else:
-            judge_id = torch.tensor([8])
-        yield judge_id
+            Method_id = torch.tensor([8])
+        yield Method_id
 
-    sb.dataio.dataset.add_dynamic_item(datasets, sound_label_pipeline)
+    sb.dataio.dataset.add_dynamic_item(datasets, target_method_label_pipeline)
 
     lab_enc_file = os.path.join(hparams["save_folder"], "label_encoder.txt")
     label_encoder.load_or_create(
         path=lab_enc_file, from_didatasets=[train_data], output_key="spk_id",
     )
 
-    sb.dataio.dataset.set_output_keys(datasets, ["id", "sig", "spk_id_encoded", "tar_sig", "sound_id", "sound_name", "judge_id"])# VC_encoded
+    sb.dataio.dataset.set_output_keys(datasets, ["id", "sig", "spk_id_encoded", "tar_sig", "Target_id", "Target_name", "Method_id"])# VC_encoded
 
     return train_data, valid_data
 
@@ -326,6 +326,9 @@ if __name__ == "__main__":
         overrides=overrides,
     )
 
+    if hparams['pretrain_mode'] not in ('ecapa', 'trident'):
+        raise ValueError("pretrain_mode must be 'ecapa' or 'trident'")
+
     speaker_brain = SpeakerBrain(
         modules=hparams["N_modules"],
         opt_class=hparams["opt_class"],
@@ -333,7 +336,7 @@ if __name__ == "__main__":
         run_opts=run_opts,
         checkpointer=hparams["checkpointer"],
     )
-    if 'Trident' in hparams['Judge_Projection_path']:
+    if hparams['pretrain_mode'] == 'trident':
         pretrain = Pretrainer(
                     loadables = {'model':speaker_brain.modules.embedding_model,
                                 'Target_Projection':speaker_brain.modules.Target_Projection,
@@ -355,7 +358,7 @@ if __name__ == "__main__":
     else:
         pretrain = Pretrainer(
             loadables = {'model':speaker_brain.modules.embedding_model},
-            paths = {'model':'/Ecapa_pretrained_path/embedding_model.ckpt'}
+            paths = {'model': hparams['embedding_model_path']}
         )
     pretrain.collect_files()
     pretrain.load_collected()
