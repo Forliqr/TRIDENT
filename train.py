@@ -292,7 +292,7 @@ def dataio_prep(hparams):
             judge_id = torch.tensor([5])
         elif 'DDDM_' in ID:
             judge_id = torch.tensor([6])
-        elif 'Freevc_' in ID:
+        elif 'FreeVC_' in ID:
             judge_id = torch.tensor([7])
         else:
             judge_id = torch.tensor([8])
