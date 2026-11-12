@@ -101,46 +101,46 @@ class SpeakerBrain(sb.core.Brain):
         feats = torch.cat([source, target], dim=1)
 
         embeddings = self.modules.embedding_model(feats)
-        Judge_embeddings, un_embeddings = self.modules.Judge_Projection(embeddings)
-        Nformat_embeddings = self.modules.Normal_Projection(embeddings)
+        Method_embeddings, un_embeddings = self.modules.Method_Projection(embeddings)
+        Target_embeddings = self.modules.Target_Projection(embeddings)
 
-        embeddings = self.modules.Diff_Projection(embeddings, un_embeddings)
+        embeddings = self.modules.Source_Projection(embeddings, un_embeddings)
 
-        nformat_outputs = self.modules.Normal_classifier(Nformat_embeddings)
-        judge_outputs = self.modules.Judge_classifier(Judge_embeddings)
-        outputs = self.modules.Diff_classifier(embeddings)
+        Target_outputs = self.modules.Target_classifier(Nformat_embeddings)
+        Method_outputs = self.modules.Method_classifier(Judge_embeddings)
+        outputs = self.modules.Source_classifier(embeddings)
 
-        return judge_outputs, nformat_outputs, outputs, lens1, flag
+        return Method_outputs, Target_outputs, outputs, lens1, flag
 
     def compute_objectives(self, predictions, batch, stage):
         """Computes the loss using speaker-id as label.
         """
-        judge_predictions, nformat_predictions, diff_predictions, lens, flag = predictions
+        Method_predictions, Target_predictions, Source_predictions, lens, flag = predictions
         if flag == 1:
             return torch.tensor(0.0, device=self.device, requires_grad=True)
         uttid = batch.id
-        spkid, _ = batch.spk_id_encoded
-        soundid, _ = batch.sound_id
-        judgeid, _ = batch.judge_id
+        Sourceid, _ = batch.spk_id_encoded
+        Targetid, _ = batch.sound_id
+        Methodid, _ = batch.judge_id
 
         if stage == sb.Stage.TRAIN:
-            spkid = torch.cat([spkid] * self.n_augment, dim=0)
-            soundid = torch.cat([soundid] * self.n_augment, dim=0)
-            judgeid = torch.cat([judgeid] * self.n_augment, dim=0)
+            Sourceid = torch.cat([Sourceid] * self.n_augment, dim=0)
+            Targetid = torch.cat([Targetid] * self.n_augment, dim=0)
+            Methodid = torch.cat([Methodid] * self.n_augment, dim=0)
         
 
-        loss1 = self.hparams.compute_cost(judge_predictions, judgeid, lens)
-        loss2 = self.hparams.compute_cost(nformat_predictions, soundid, lens)
-        loss3 = self.hparams.compute_cost(diff_predictions, spkid, lens)
+        loss1 = self.hparams.compute_cost(Method_predictions, Methodid, lens)
+        loss2 = self.hparams.compute_cost(Target_predictions, Targetid, lens)
+        loss3 = self.hparams.compute_cost(Source_predictions, Sourceid, lens)
         samples_sign = torch.sign(torch.abs(spkid-soundid)).flatten()
         selected_indices = torch.where(samples_sign==1)[0]
-        selected_d = diff_predictions[selected_indices]
-        selected_n = nformat_predictions[selected_indices]
+        selected_d = Source_predictions[selected_indices]
+        selected_n = Target_predictions[selected_indices]
         loss4 = safe_cosine_similarity(selected_d, selected_n, eps=1e-6)
         loss4 = loss4.mean()
         _selected_indices = torch.where(samples_sign==0)[0]
-        _selected_d = diff_predictions[_selected_indices]
-        _selected_n = nformat_predictions[_selected_indices]
+        _selected_d = Source_predictions[_selected_indices]
+        _selected_n = Target_predictions[_selected_indices]
         loss5 = safe_cosine_similarity(_selected_d, _selected_n, eps=1e-6)
         loss5 = loss5.mean()
         loss = 0.1 * loss1 + 0.1 * loss2 + loss3
@@ -336,20 +336,20 @@ if __name__ == "__main__":
     if 'Trident' in hparams['Judge_Projection_path']:
         pretrain = Pretrainer(
                     loadables = {'model':speaker_brain.modules.embedding_model,
-                                'Normal_Projection':speaker_brain.modules.Normal_Projection,
-                                'Judge_Projection':speaker_brain.modules.Judge_Projection,
-                                'Diff_Projection':speaker_brain.modules.Diff_Projection,
-                                'Normal_classifier':speaker_brain.modules.Normal_classifier,
-                                'Judge_classifier':speaker_brain.modules.Judge_classifier,
-                                'Diff_classifier':speaker_brain.modules.Diff_classifier,
+                                'Target_Projection':speaker_brain.modules.Target_Projection,
+                                'Method_Projection':speaker_brain.modules.Method_Projection,
+                                'Source_Projection':speaker_brain.modules.Source_Projection,
+                                'Target_classifier':speaker_brain.modules.Target_classifier,
+                                'Method_classifier':speaker_brain.modules.Method_classifier,
+                                'Source_classifier':speaker_brain.modules.Source_classifier,
                                 },
                     paths = {'model':hparams['embedding_model_path'],
-                            'Normal_Projection':hparams['Normal_Projection_path'],
-                            'Judge_Projection':hparams['Judge_Projection_path'],
-                            'Diff_Projection':hparams['Diff_Projection_path'],
-                            'Normal_classifier':hparams['Normal_classifier_path'],
-                            'Judge_classifier':hparams['Judge_classifier_path'],
-                            'Diff_classifier':hparams['Diff_classifier_path'],
+                            'Target_Projection':hparams['Target_Projection_path'],
+                            'Method_Projection':hparams['Method_Projection_path'],
+                            'Source_Projection':hparams['Source_Projection_path'],
+                            'Target_classifier':hparams['Target_classifier_path'],
+                            'Method_classifier':hparams['Method_classifier_path'],
+                            'Source_classifier':hparams['Source_classifier_path'],
                             }    
         )
     else:
