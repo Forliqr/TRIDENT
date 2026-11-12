@@ -1,4 +1,4 @@
-pretrained_path: /checkpoints/Trident/exact_path
+pretrained_path: /checkpoints/Trident
 out_n_neurons: 9583
 
 n_mels: 80
