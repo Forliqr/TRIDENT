@@ -22,7 +22,7 @@ data/
     └── {dataset}/ 
         └── {method_name}/               # e.g., Clean, FreeVC, Diff
             └── {source_speaker}-{target_speaker}/   # e.g., spk1-spk2
-                └── {source_utt}-{target_utt}.wav    # e.g., uttA-uttB.wav
+                └── {source_speaker}-{target_speaker}_{source_utt}-{target_utt}.wav    # e.g., uttA-uttB.wav
 ```
 ### CSV Format
 `train.csv` and `test.csv` should be generated with the following fields.
