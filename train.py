@@ -213,6 +213,7 @@ def dataio_prep(hparams):
 
         num_frames = int(hparams["sample_rate"]*hparams["sentence_len"])
         sig, fs = torchaudio.load(
+            wav
         )
         sig = resample(sig, fs, int(hparams["sample_rate"]))
         if sig.size(-1) < num_frames:
