@@ -31,7 +31,13 @@ class Encoder(Pretrained):
         feats1 = self.mods.mean_var_norm(feats1, wav_lens)
         feats2 = self.mods.mean_var_norm(feats2, tarwav_lens)
 
-        embeddings = self.mods.embedding_model.module.inference(feats1, feats2)     
+        embedding_model = self.mods.embedding_model
+        if isinstance(
+            embedding_model,
+            (torch.nn.DataParallel, torch.nn.parallel.DistributedDataParallel),
+        ):
+            embedding_model = embedding_model.module
+        embeddings = embedding_model.inference(feats1, feats2)     
 
         Method_embeddings, un_embeddings = self.mods.Method_Projection(embeddings)
 
@@ -61,7 +67,13 @@ class Encoder(Pretrained):
         feats1 = self.mods.mean_var_norm(feats1, wav_lens)
         feats2 = self.mods.mean_var_norm(feats2, tarwav_lens)
 
-        embeddings = self.mods.embedding_model.module.inference(feats1, feats2)   
+        embedding_model = self.mods.embedding_model
+        if isinstance(
+            embedding_model,
+            (torch.nn.DataParallel, torch.nn.parallel.DistributedDataParallel),
+        ):
+            embedding_model = embedding_model.module
+        embeddings = embedding_model.inference(feats1, feats2)   
 
         Method_embeddings, un_embeddings = self.mods.Method_Projection(embeddings)
 
@@ -83,4 +95,9 @@ class Encoder(Pretrained):
         return emb
 
     def forward(self, wavs, tarwavs, wav_lens=None, tarwav_lens=None):
-        return self.encode_batch(wavs=wavs, tarwavs=tarwavs)
+        return self.encode_batch(
+            wavs=wavs,
+            tarwavs=tarwavs,
+            wav_lens=wav_lens,
+            tarwav_lens=tarwav_lens,
+        )
