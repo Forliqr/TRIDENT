@@ -73,7 +73,7 @@ modules:
     Target_classifier: !ref <classifier>
     Source_classifier: !ref <classifier>
     Method_Projection: !ref <Method_Projection>
-    Method_classifier: !ref <classifier>
+    Method_classifier: !ref <Method_classifier>
     mean_var_norm: !ref <mean_var_norm>
     mean_var_norm_emb: !ref <mean_var_norm_emb>
         
